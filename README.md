@@ -1,4 +1,4 @@
-# 🛡️ Safe Route Finder
+# 🛡️ Namma Daari
 
 A modern web application that helps you find the safest routes in Bengaluru by analyzing crime data and providing safety scores for alternative routes.
 
