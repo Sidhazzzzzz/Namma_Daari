@@ -1,0 +1,2 @@
+feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version,feed_contact_email,feed_contact_url
+Vonter,https://github.com/Vonter/bmtc-gtfs,en,20251102,20261102,20251102,me@vonter.in,https://github.com/Vonter/bmtc-gtfs

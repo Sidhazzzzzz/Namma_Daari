@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Namma Daari</title>
+    <meta name="description"
+        content="Discover the safest routes in Bengaluru with real-time crime data analysis and intelligent route planning.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- MapLibre GL JS from CDN -->
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+
+    <link rel="stylesheet" href="/src/style.css">
+    <link rel="stylesheet" href="src/sos-override.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-content">
+                <div class="logo-section">
+                    <img src="logo.jpg" alt="NAMMದಾರಿ Logo" class="logo-icon">
+                </div>
+
+
+                <div class="input-section">
+                    <div class="input-group">
+                        <label for="start-location">
+                            <span class="label-icon">📍</span>
+                            Starting Point
+                        </label>
+                        <input type="text" id="start-location" placeholder="e.g., Indiranagar, Bengaluru"
+                            autocomplete="off">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="end-location">
+                            <span class="label-icon">🎯</span>
+                            Destination
+                        </label>
+                        <input type="text" id="end-location" placeholder="e.g., Koramangala, Bengaluru"
+                            autocomplete="off">
+                    </div>
+
+                    <button id="find-routes-btn" class="primary-btn">
+                        <span class="btn-icon">🔍</span>
+                        Find Safe Routes
+                    </button>
+
+                    <button id="metro-btn" class="secondary-btn"
+                        style="margin-top: 10px; width: 100%; padding: 12px; background-color: #6b21a8; color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: all 0.2s;">
+                        <span class="btn-icon">🚇</span>
+                        Show Metro Stations
+                    </button>
+
+                    <button id="bmtc-btn" class="secondary-btn"
+                        style="margin-top: 10px; width: 100%; padding: 12px; background-color: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: all 0.2s;">
+                        <span class="btn-icon">🚌</span>
+                        Show BMTC Routes
+                    </button>
+
+                    <button id="accidents-btn" class="secondary-btn"
+                        style="margin-top: 10px; width: 100%; padding: 12px; background-color: #ea580c; color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: all 0.2s;">
+                        <span class="btn-icon">⚠️</span>
+                        Show Accidents
+                    </button>
+
+                    <button id="facilities-btn" class="secondary-btn"
+                        style="margin-top: 10px; width: 100%; padding: 12px; background-color: #0f766e; color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; transition: all 0.2s;">
+                        <span class="btn-icon">🏥</span>
+                        Show Hospitals & Police
+                    </button>
+                </div>
+
+                <div id="weather-container" class="weather-container hidden">
+                    <h2 class="weather-title">Current Weather</h2>
+                    <div class="weather-grid">
+                        <div id="start-weather" class="weather-card">
+                            <!-- Start weather content -->
+                        </div>
+                        <div id="end-weather" class="weather-card">
+                            <!-- End weather content -->
+                        </div>
+                    </div>
+                </div>
+
+                <div id="routes-container" class="routes-container">
+                    <h2 class="routes-title">Available Routes</h2>
+                    <div id="routes-list" class="routes-list">
+                        <!-- Routes will be dynamically inserted here -->
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-card">
+                        <div class="info-icon">ℹ️</div>
+                        <p class="info-text">Safety scores are calculated based on crime data analysis along each route.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Map Container -->
+        <main class="map-container">
+            <!-- SOS Button (Top Right) -->
+            <button id="sos-btn" class="sos-btn">
+                <span class="sos-icon">🚨</span>
+                <span class="sos-text">SOS</span>
+            </button>
+
+            <div id="map"></div>
+            <div id="loading-overlay" class="loading-overlay hidden">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Calculating safe routes...</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="data/metroData.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>

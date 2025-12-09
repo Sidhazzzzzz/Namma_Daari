@@ -1,0 +1,32 @@
+/* SOS Button Override - Bright Red, No Glow */
+.sos-btn {
+    position: fixed !important;
+    top: 30px !important;
+    right: 15px !important;
+    z-index: 100 !important;
+    padding: var(--spacing-md) var(--spacing-lg) !important;
+    background: #DC143C !important;
+    border: 2px solid #A01030 !important;
+    border-radius: var(--radius-xl) !important;
+    color: #fff !important;
+    font-size: var(--font-size-lg) !important;
+    font-weight: 700 !important;
+    font-family: var(--font-family) !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: var(--spacing-sm) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+    transition: all var(--transition-base) !important;
+    animation: none !important;
+}
+
+.sos-btn:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4) !important;
+    background: #FF1744 !important;
+}
+
+.sos-btn:active {
+    transform: scale(1.02) !important;
+}
