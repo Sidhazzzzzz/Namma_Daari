@@ -1,4 +1,4 @@
-window.metroData = {
+export const metroData = {
     "type": "FeatureCollection",
     "features": [
         // --- Purple Line Route ---

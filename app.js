@@ -13,6 +13,7 @@ import { ACCIDENT_DATA } from './src/services/accidentData.js';
 import { getCrimeData, calculateSafetyScore, getSafetyLevel, getRouteColor } from './src/services/safetyService.js';
 import { getRoutes, formatDistance, formatDuration, findNearestFacilities, calculateAdjustedDuration } from './src/services/routeService.js';
 import { HOSPITALS, POLICE_STATIONS } from './src/services/facilityData.js';
+import { metroData } from './data/metroData.js';
 
 
 
@@ -781,10 +782,10 @@ function addCrimeDataLayer() {
 // Metro Data Visualization
 // ========================================
 function addMetroLayer() {
-    if (typeof metroData === 'undefined') {
-        console.error('Metro data not loaded');
-        return;
-    }
+    // if (typeof metroData === 'undefined') {
+    //     console.error('Metro data not loaded');
+    //     return;
+    // }
 
     // Add metro data source
     map.addSource('metro-data', {
