@@ -3,7 +3,6 @@
 // ========================================
 
 // ========================================
-// ========================================
 // Crime Service
 // ========================================
 const TOMTOM_API_KEY = import.meta.env.VITE_TOMTOM_API_KEY;
@@ -14,9 +13,6 @@ import { getCrimeData, calculateSafetyScore, getSafetyLevel, getRouteColor } fro
 import { getRoutes, formatDistance, formatDuration, findNearestFacilities, calculateAdjustedDuration } from './src/services/routeService.js';
 import { HOSPITALS, POLICE_STATIONS } from './src/services/facilityData.js';
 import { metroData } from './data/metroData.js';
-
-
-
 
 // ========================================
 // Geocoding Service
@@ -239,70 +235,73 @@ function showSuggestions(suggestions, inputElement) {
             const lon = parseFloat(item.lon);
 
             if (!isMobile && !isNaN(lat) && !isNaN(lon) && map) {
-                const isStart = inputElement.id === 'start-location';
+                // Defer all map operations to yield to browser rendering
+                setTimeout(() => {
+                    const isStart = inputElement.id === 'start-location';
 
-                // Remove existing preview markers
-                if (isStart && window.startPreviewMarker) {
-                    window.startPreviewMarker.remove();
-                }
-                if (!isStart && window.endPreviewMarker) {
-                    window.endPreviewMarker.remove();
-                }
+                    // Remove existing preview markers
+                    if (isStart && window.startPreviewMarker) {
+                        window.startPreviewMarker.remove();
+                    }
+                    if (!isStart && window.endPreviewMarker) {
+                        window.endPreviewMarker.remove();
+                    }
 
-                // Create preview marker
-                const previewEl = document.createElement('div');
-                previewEl.className = 'preview-marker';
-                previewEl.style.cssText = 'display:flex;align-items:center;justify-content:center;padding:0;margin:0;';
-                previewEl.innerHTML = isStart
-                    ? `<svg width="25" height="25" viewBox="0 0 20 20" style="display:block;">
-                        <circle cx="10" cy="10" r="8" fill="#22c55e"/>
-                        <circle cx="10" cy="10" r="3" fill="#fff"/>
-                    </svg>`
-                    : `<svg width="25" height="35" viewBox="0 0 20 28" style="display:block;">
-                        <path d="M10 0C4.5 0 0 4.5 0 10c0 7.5 10 18 10 18s10-10.5 10-18C20 4.5 15.5 0 10 0z" fill="#ef4444"/>
-                        <circle cx="10" cy="9" r="3.5" fill="#fff"/>
-                    </svg>`;
+                    // Create preview marker
+                    const previewEl = document.createElement('div');
+                    previewEl.className = 'preview-marker';
+                    previewEl.style.cssText = 'display:flex;align-items:center;justify-content:center;padding:0;margin:0;';
+                    previewEl.innerHTML = isStart
+                        ? `<svg width="25" height="25" viewBox="0 0 20 20" style="display:block;">
+                            <circle cx="10" cy="10" r="8" fill="#22c55e"/>
+                            <circle cx="10" cy="10" r="3" fill="#fff"/>
+                        </svg>`
+                        : `<svg width="25" height="35" viewBox="0 0 20 28" style="display:block;">
+                            <path d="M10 0C4.5 0 0 4.5 0 10c0 7.5 10 18 10 18s10-10.5 10-18C20 4.5 15.5 0 10 0z" fill="#ef4444"/>
+                            <circle cx="10" cy="9" r="3.5" fill="#fff"/>
+                        </svg>`;
 
-                const marker = new maplibregl.Marker({
-                    element: previewEl,
-                    anchor: isStart ? 'center' : 'bottom'
-                })
-                    .setLngLat([lon, lat])
-                    .addTo(map);
+                    const marker = new maplibregl.Marker({
+                        element: previewEl,
+                        anchor: isStart ? 'center' : 'bottom'
+                    })
+                        .setLngLat([lon, lat])
+                        .addTo(map);
 
-                if (isStart) {
-                    window.startPreviewMarker = marker;
-                } else {
-                    window.endPreviewMarker = marker;
-                }
+                    if (isStart) {
+                        window.startPreviewMarker = marker;
+                    } else {
+                        window.endPreviewMarker = marker;
+                    }
 
-                // Check if both locations are set
-                const startInput = document.getElementById('start-location');
-                const endInput = document.getElementById('end-location');
-                const startLat = parseFloat(startInput.dataset.lat);
-                const startLon = parseFloat(startInput.dataset.lon);
-                const endLat = parseFloat(endInput.dataset.lat);
-                const endLon = parseFloat(endInput.dataset.lon);
+                    // Check if both locations are set
+                    const startInput = document.getElementById('start-location');
+                    const endInput = document.getElementById('end-location');
+                    const startLat = parseFloat(startInput.dataset.lat);
+                    const startLon = parseFloat(startInput.dataset.lon);
+                    const endLat = parseFloat(endInput.dataset.lat);
+                    const endLon = parseFloat(endInput.dataset.lon);
 
-                if (!isNaN(startLat) && !isNaN(startLon) && !isNaN(endLat) && !isNaN(endLon)) {
-                    // Both locations set - fit bounds to show both
-                    const bounds = new maplibregl.LngLatBounds()
-                        .extend([startLon, startLat])
-                        .extend([endLon, endLat]);
+                    if (!isNaN(startLat) && !isNaN(startLon) && !isNaN(endLat) && !isNaN(endLon)) {
+                        // Both locations set - fit bounds to show both
+                        const bounds = new maplibregl.LngLatBounds()
+                            .extend([startLon, startLat])
+                            .extend([endLon, endLat]);
 
-                    map.fitBounds(bounds, {
-                        padding: { top: 80, bottom: 80, left: 450, right: 80 },
-                        duration: 1500
-                    });
-                } else {
-                    // Only one location - zoom to it
-                    map.flyTo({
-                        center: [lon, lat],
-                        zoom: 15,
-                        duration: 1200,
-                        padding: { left: 420 }
-                    });
-                }
+                        map.fitBounds(bounds, {
+                            padding: { top: 80, bottom: 80, left: 450, right: 80 },
+                            duration: 1500
+                        });
+                    } else {
+                        // Only one location - zoom to it
+                        map.flyTo({
+                            center: [lon, lat],
+                            zoom: 15,
+                            duration: 1200,
+                            padding: { left: 420 }
+                        });
+                    }
+                }, 0);
             }
         });
         list.appendChild(div);
@@ -1342,11 +1341,15 @@ function renderRoutesOnMap(routes) {
             });
 
             map.on('mouseenter', layerId, () => {
-                map.getCanvas().style.cursor = 'pointer';
+                requestAnimationFrame(() => {
+                    map.getCanvas().style.cursor = 'pointer';
+                });
             });
 
             map.on('mouseleave', layerId, () => {
-                map.getCanvas().style.cursor = '';
+                requestAnimationFrame(() => {
+                    map.getCanvas().style.cursor = '';
+                });
             });
         } catch (error) {
             console.error(`Error adding route ${index + 1}:`, error);
@@ -1477,28 +1480,32 @@ function addMarkers(startCoords, endCoords) {
 function selectRoute(routeId) {
     selectedRouteId = routeId;
 
-    currentRoutes.forEach((route, index) => {
-        const layerId = `route-layer-${route.id}`;
-        if (map.getLayer(layerId)) {
-            const isSelected = route.id === routeId;
-
-            // Intrinsic colors: Index 0 = Green, Index 1 = Yellow, Others = Gray
-            const color = index === 0 ? '#10b981' : (index === 1 ? '#f59e0b' : '#94a3b8');
-
-            map.setPaintProperty(layerId, 'line-width', isSelected ? 6 : 4);
-            map.setPaintProperty(layerId, 'line-opacity', isSelected ? 1 : 0.4);
-            map.setPaintProperty(layerId, 'line-color', color);
-
-            // Move selected route to top
-            if (isSelected) {
-                map.moveLayer(layerId);
-            }
-        }
-    });
-
+    // Immediate UI feedback for route cards
     document.querySelectorAll('.route-card').forEach(card => {
         card.classList.toggle('selected', card.dataset.routeId === routeId);
     });
+
+    // Defer map layer updates to yield to browser rendering
+    setTimeout(() => {
+        currentRoutes.forEach((route, index) => {
+            const layerId = `route-layer-${route.id}`;
+            if (map.getLayer(layerId)) {
+                const isSelected = route.id === routeId;
+
+                // Intrinsic colors: Index 0 = Green, Index 1 = Yellow, Others = Gray
+                const color = index === 0 ? '#10b981' : (index === 1 ? '#f59e0b' : '#94a3b8');
+
+                map.setPaintProperty(layerId, 'line-width', isSelected ? 6 : 4);
+                map.setPaintProperty(layerId, 'line-opacity', isSelected ? 1 : 0.4);
+                map.setPaintProperty(layerId, 'line-color', color);
+
+                // Move selected route to top
+                if (isSelected) {
+                    map.moveLayer(layerId);
+                }
+            }
+        });
+    }, 0);
 }
 
 // ========================================
@@ -2002,24 +2009,28 @@ function initMobileSearchPanel() {
 
     // Open expanded search when collapsed bar is tapped
     collapsedSearch.addEventListener('click', () => {
+        // Immediate visual feedback only - keeps INP low
         expandedSearch.classList.remove('hidden');
         collapsedSearch.style.opacity = '0';
         collapsedSearch.style.pointerEvents = 'none';
 
-        // Minimize bottom panel when search is opened
-        const panel = document.querySelector('.sidebar');
-        if (panel) {
-            panel.classList.remove('expanded');
-            panel.classList.add('minimized');
-        }
+        // Defer heavy operations to yield to browser rendering
+        setTimeout(() => {
+            // Minimize bottom panel when search is opened
+            const panel = document.querySelector('.sidebar');
+            if (panel) {
+                panel.classList.remove('expanded');
+                panel.classList.add('minimized');
+            }
 
-        // Sync values from main inputs
-        if (mobileStartInput && mainStartInput) {
-            mobileStartInput.value = mainStartInput.value;
-        }
-        if (mobileEndInput && mainEndInput) {
-            mobileEndInput.value = mainEndInput.value;
-        }
+            // Sync values from main inputs
+            if (mobileStartInput && mainStartInput) {
+                mobileStartInput.value = mainStartInput.value;
+            }
+            if (mobileEndInput && mainEndInput) {
+                mobileEndInput.value = mainEndInput.value;
+            }
+        }, 0);
 
         // Focus first input after animation
         setTimeout(() => {
