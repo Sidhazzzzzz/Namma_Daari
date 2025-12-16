@@ -1,98 +1,84 @@
-# 🛡️ Namma Daari
+# Namma Daari (ನಮ್ಮ ದಾರಿ)
 
-A modern web application that helps you find the safest routes in Bengaluru by analyzing crime data and providing safety scores for alternative routes.
+**Your personal guide to the safest streets in Bengaluru.**
 
-## Features
+Namma Daari ("Our Way" in Kannada) isn't just another map app. It's a specialized safety tool built specificially for Bengaluru, designed to help you navigate not just the fastest routes, but the *safest* ones.
 
-- 🗺️ **Interactive Map**: Powered by MapLibre GL JS with a beautiful dark theme
-- 🛣️ **Multiple Routes**: Get up to 3 alternative routes between any two locations
-- 🔒 **Safety Scoring**: Each route is analyzed against crime data and given a safety score (0-100)
-- 📊 **Crime Visualization**: See crime hotspots on the map with severity indicators
-- 🎨 **Premium UI**: Modern glassmorphism design with smooth animations
-- ⚡ **Fast & Responsive**: Built with Vite for optimal performance
+Whether you're walking home late at night in Indiranagar or commuting through Silk Board, this app analyzes real-time data to keep you informed.
 
-## Tech Stack
+---
 
-- **Frontend**: Vanilla JavaScript (ES6+)
-- **Build Tool**: Vite
-- **Mapping**: MapLibre GL JS
-- **Routing API**: OSRM (Open Source Routing Machine)
-- **Geocoding**: Nominatim (OpenStreetMap)
-- **Styling**: Custom CSS with CSS Variables
+## 🛠️ How It Actually Works
 
-## Getting Started
+Unlike standard maps that only minimize time, Namma Daari runs a custom **Safety Weighting Algorithm** on every possible route. Here's what happens under the hood when you search:
 
-### Prerequisites
+### 1. The Routing Engine (with Redundancy)
+We don't rely on a single source of truth. The app uses a **fallback architecture**:
+1.  **Primary**: It attempts to fetch routes from **OSRM (Open Source Routing Machine)**.
+2.  **Backup**: If OSRM is overloaded or down, it seamlessly fails over to **TomTom's Routing API**.
+3.  **Optimization**: We request multiple alternative routes (not just one) to compare their safety profiles.
 
-- Node.js (v16 or higher)
-- npm or yarn
+### 2. The Safety Algorithm
+Once we have the geometry of the route strings, we run them through `safetyService.js`. The logic calculates a **Safety Score (0-100)** based on four key factors:
 
-### Installation
+*   **🚨 Crime Hotspots**: We map your route against a database of known high-severity zones (e.g., active incident areas in BTM, MG Road).
+    *   *Logic*: `Quadratic Falloff`. If you are within 2km of a hotspot, the risk score spikes, but drops off sharply as you move away.
+*   **⚠️ Accident Zones**: We track blackspots where frequent accidents occur.
+    *   *Logic*: Weighted by severity (1.5x multiplier) within a 1km radius.
+*   **👮 Police Protection**: Proximity to police stations acts as a safety "shield".
+    *   *Logic*: Deducts up to 60% of the risk score if you are within 1.5km of a station.
+*   **🏥 Medical Access**: Proximity to hospitals provides a secondary safety boost.
+    *   *Logic*: Deducts up to 30% of risk if within 1km.
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd mf
-   ```
+### 3. Real-World Adjustments (The "Bengaluru Factor")
+Raw travel times are rarely accurate here. We apply a **1.4x congestion multiplier** by default to account for typical city traffic. On top of that, we overlay **Weather Data** (OpenWeatherMap)—if it's raining, we automatically add a 20% buffer to your ETA.
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+---
 
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+## 💻 Tech Stack & Performance
 
-4. Open your browser and navigate to `http://localhost:8081`
+This is a modern, lightweight web application built for speed (high INP performance verified).
 
-## Usage
+*   **Core**: Vanilla JavaScript (ES Modules) - no heavy framework bloat.
+*   **Bundler**: **Vite** for lightning-fast HMR and optimized production builds.
+*   **Maps**: **MapLibre GL JS** - Open-source, high-performance vector maps.
+*   **Styling**: Pure CSS with glassmorphism effects (`backdrop-filter`) for that premium feel.
 
-1. Enter your **starting point** (e.g., "Indiranagar, Bengaluru")
-2. Enter your **destination** (e.g., "Koramangala, Bengaluru")
-3. Click **Find Safe Routes**
-4. View the routes on the map with color-coded safety indicators:
-   - 🟢 Green: Safest route (75-100 safety score)
-   - 🟠 Orange: Moderate safety (50-74 safety score)
-   - 🔴 Red: Caution advised (0-49 safety score)
-5. Click on any route card or route line to highlight it
+### Key Optimizations
+*   **Mobile-First**: The bottom panel works like a native app sheet, with touch-drag gestures optimized for 60fps.
+*   **Deferred Rendering**: Heavy map operations (like route painting) are deferred using `requestAnimationFrame` and `setTimeout` to ensure the UI never freezes, even on mid-range phones.
 
-## How Safety Scores Work
+---
 
-The safety score is calculated by:
-1. Analyzing the route path against known crime hotspots
-2. Calculating proximity to crime areas (within 500m radius)
-3. Weighting by crime severity (1-10 scale)
-4. Normalizing to a 0-100 score where 100 is the safest
+## 🚀 Features at a Glance
 
-## Project Structure
+*   **Safe Route finding**: Color-coded routes (Green = Safe, Orange = Moderate, Red = Caution).
+*   **Metro & BMTC Layers**: Toggle overlays to see Namma Metro stations and bus routes.
+*   **SOS Button**: A quick-access emergency trigger.
+*   **Traffic & Weather**: Live incident markers and current weather conditions affecting your trip.
 
-```
-mf/
-├── src/
-│   ├── services/
-│   │   ├── geocodingService.js  # Location to coordinates conversion
-│   │   ├── routeService.js      # Route fetching from OSRM
-│   │   └── safetyService.js     # Crime data and safety scoring
-│   ├── main.js                  # Main application logic
-│   └── style.css                # Styling and design system
-├── index.html                   # Entry point
-├── package.json                 # Dependencies
-└── vite.config.js              # Vite configuration
-```
+---
 
-## API Credits
+## 🏃‍♂️ Running it Locally
 
-- **Routing**: [OSRM](http://project-osrm.org/)
-- **Geocoding**: [Nominatim](https://nominatim.org/)
-- **Map Tiles**: [Stadia Maps](https://stadiamaps.com/)
+You can run this on your machine in seconds:
 
-## Future Enhancements
+1.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
 
-- [ ] Real-time crime data integration
-- [ ] User-reported incidents
-- [ ] Time-based safety analysis (day vs night)
-- [ ] Save favorite routes
-- [ ] Share routes with others
-- [ ] Mobile app version
+2.  **Start the server**:
+    ```bash
+    npm run dev
+    ```
+    Typically runs at `http://localhost:5173` or `http://localhost:8080`.
+
+3.  **Build for production**:
+    ```bash
+    npm run build
+    ```
+
+---
+
+*Made with ❤️ for Namma Bengaluru.*
