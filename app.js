@@ -13,6 +13,7 @@ import { getCrimeData, calculateSafetyScore, getSafetyLevel, getRouteColor } fro
 import { getRoutes, formatDistance, formatDuration, findNearestFacilities, calculateAdjustedDuration } from './src/services/routeService.js';
 import { HOSPITALS, POLICE_STATIONS } from './src/services/facilityData.js';
 import { metroData } from './data/metroData.js';
+import * as turf from '@turf/turf';
 
 // ========================================
 // Geocoding Service
@@ -144,18 +145,18 @@ async function fetchSuggestions(query, retries = 1) {
     if (!query || query.length < 2) return []; // TomTom works with 2+ chars
 
     try {
-        const params = new URLSearchParams({
-            query: query,
-            lat: userLocation.lat,
-            lon: userLocation.lon,
-            limit: '5'
-        });
+        // Call TomTom Fuzzy Search API directly
+        const tomtomUrl = new URL(`https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json`);
+        tomtomUrl.searchParams.set('key', TOMTOM_API_KEY);
+        tomtomUrl.searchParams.set('limit', '5');
+        tomtomUrl.searchParams.set('countrySet', 'IN');
+        tomtomUrl.searchParams.set('lat', userLocation.lat);
+        tomtomUrl.searchParams.set('lon', userLocation.lon);
+        tomtomUrl.searchParams.set('radius', '50000');
+        tomtomUrl.searchParams.set('language', 'en-US');
+        tomtomUrl.searchParams.set('typeahead', 'true');
 
-        const response = await fetchWithTimeout(
-            `/api/tomtom-search?${params}`,
-            {},
-            5000 // 5 second timeout
-        );
+        const response = await fetchWithTimeout(tomtomUrl.toString(), {}, 5000);
 
         if (!response.ok) {
             if ((response.status >= 500 || response.status === 429) && retries > 0) {
@@ -169,11 +170,11 @@ async function fetchSuggestions(query, retries = 1) {
 
         const data = await response.json();
 
-        // Transform to format expected by showSuggestions
+        // Transform TomTom response to format expected by showSuggestions
         return (data.results || []).map(result => ({
-            display_name: result.display_name,
-            lat: result.lat,
-            lon: result.lon
+            display_name: result.address?.freeformAddress || result.poi?.name || 'Unknown',
+            lat: result.position.lat,
+            lon: result.position.lon
         }));
     } catch (error) {
         console.error('Autocomplete error:', error);
@@ -185,6 +186,7 @@ async function fetchSuggestions(query, retries = 1) {
         return [];
     }
 }
+
 
 function showSuggestions(suggestions, inputElement) {
     let list = inputElement.nextElementSibling;
@@ -483,13 +485,51 @@ function initializeMap() {
         addAccidentLayer();
         addFacilityLayer();
 
-        document.getElementById('accidents-btn').addEventListener('click', toggleAccidents);
-        document.getElementById('facilities-btn').addEventListener('click', toggleFacilities);
+        // Sidebar button listeners (check if they exist first)
+        const metroBtn = document.getElementById('metro-btn');
+        if (metroBtn) metroBtn.addEventListener('click', toggleMetroStops);
+
+        const bmtcBtn = document.getElementById('bmtc-btn');
+        if (bmtcBtn) bmtcBtn.addEventListener('click', toggleBmtcRoutes);
+
+        const accidentsBtn = document.getElementById('accidents-btn');
+        if (accidentsBtn) accidentsBtn.addEventListener('click', toggleAccidents);
+
+        const facilitiesBtn = document.getElementById('facilities-btn');
+        if (facilitiesBtn) facilitiesBtn.addEventListener('click', toggleFacilities);
+
+        // Navbar button listeners
+        const navbarMetroBtn = document.getElementById('navbar-metro-btn');
+        if (navbarMetroBtn) navbarMetroBtn.addEventListener('click', toggleMetroStops);
+
+        const navbarBmtcBtn = document.getElementById('navbar-bmtc-btn');
+        if (navbarBmtcBtn) navbarBmtcBtn.addEventListener('click', toggleBmtcRoutes);
+
+        const navbarAccidentsBtn = document.getElementById('navbar-accidents-btn');
+        if (navbarAccidentsBtn) navbarAccidentsBtn.addEventListener('click', toggleAccidents);
+
+        const navbarFacilitiesBtn = document.getElementById('navbar-facilities-btn');
+        if (navbarFacilitiesBtn) navbarFacilitiesBtn.addEventListener('click', toggleFacilities);
+
+        // Mobile bottom nav button listeners
+        const mobileMetroBtn = document.getElementById('mobile-metro-btn');
+        if (mobileMetroBtn) mobileMetroBtn.addEventListener('click', toggleMetroStops);
+
+        const mobileBmtcBtn = document.getElementById('mobile-bmtc-btn');
+        if (mobileBmtcBtn) mobileBmtcBtn.addEventListener('click', toggleBmtcRoutes);
+
+        const mobileAccidentsBtn = document.getElementById('mobile-accidents-btn');
+        if (mobileAccidentsBtn) mobileAccidentsBtn.addEventListener('click', toggleAccidents);
+
+        const mobileFacilitiesBtn = document.getElementById('mobile-facilities-btn');
+        if (mobileFacilitiesBtn) mobileFacilitiesBtn.addEventListener('click', toggleFacilities);
 
         // Show user location on load
         showUserLocation();
     });
 }
+
+let userLocationMarker = null;
 
 function showUserLocation() {
     if (!navigator.geolocation) {
@@ -507,18 +547,22 @@ function showUserLocation() {
             // Update search location bias for autocomplete
             updateUserLocationForSearch(latitude, longitude);
 
-            // Create the HTML element for the marker
-            const el = document.createElement('div');
-            el.className = 'user-location-container';
-            el.innerHTML = `
-                <div class="user-location-pulse"></div>
-                <div class="user-location-dot"></div>
-            `;
+            if (userLocationMarker) {
+                // Update existing marker position
+                userLocationMarker.setLngLat([longitude, latitude]);
+            } else {
+                // Create the HTML element for the marker
+                const el = document.createElement('div');
+                el.className = 'user-location-container';
+                el.innerHTML = `
+                    <div class="user-location-dot"></div>
+                `;
 
-            // Add marker to map
-            new maplibregl.Marker({ element: el })
-                .setLngLat([longitude, latitude])
-                .addTo(map);
+                // Add marker to map
+                userLocationMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
+                    .setLngLat([longitude, latitude])
+                    .addTo(map);
+            }
 
             // Fly to location
             map.flyTo({
@@ -940,16 +984,40 @@ function toggleMetroStops() {
     }
 
     const btn = document.getElementById('metro-btn');
-    const label = btn.querySelector('.btn-label');
-    if (newVisibility === 'visible') {
-        btn.classList.add('active');
-        if (label) label.textContent = 'Hide Metro';
+    const navBtn = document.getElementById('navbar-metro-btn');
 
-        // Check if mobile for different padding
+    // Toggle active state for sidebar button if it exists
+    if (btn) {
+        const label = btn.querySelector('.btn-label');
+        if (newVisibility === 'visible') {
+            btn.classList.add('active');
+            if (label) label.textContent = 'Hide Metro';
+        } else {
+            btn.classList.remove('active');
+            if (label) label.textContent = 'Metro Stations';
+        }
+    }
+
+    // Toggle active state for navbar button
+    if (navBtn) {
+        if (newVisibility === 'visible') {
+            navBtn.classList.add('active');
+        } else {
+            navBtn.classList.remove('active');
+        }
+    }
+
+    // Toggle active state for mobile bottom nav button
+    const mobileBtn = document.getElementById('mobile-metro-btn');
+    if (mobileBtn) {
+        newVisibility === 'visible' ? mobileBtn.classList.add('active') : mobileBtn.classList.remove('active');
+    }
+
+    // Zoom out animation when enabling layer
+    if (newVisibility === 'visible') {
         const isMobile = window.matchMedia('(max-width: 768px)').matches;
 
         if (isMobile) {
-            // Mobile: Get actual top bar and panel heights
             const topBar = document.querySelector('.mobile-top-bar');
             const panel = document.querySelector('.sidebar');
             const topPadding = topBar ? topBar.offsetHeight + 15 : 75;
@@ -961,154 +1029,372 @@ function toggleMetroStops() {
                 padding: { top: topPadding, bottom: bottomPadding, left: 25, right: 25 }
             });
         } else {
-            // Desktop: Original padding with sidebar offset
             map.flyTo({
                 center: [77.5946, 12.9716],
                 zoom: 11,
                 padding: { left: 450, right: 50 }
             });
         }
-    } else {
-        btn.classList.remove('active');
-        if (label) label.textContent = 'Metro Stations';
     }
 }
 
+
 // ========================================
-// BMTC Data Visualization
+// BMTC Data Visualization (Smart 1km Filtering)
 // ========================================
+
+// Global store for BMTC data to avoid re-fetching
+window.BMTC_DATA = {
+
+    stops: null,
+    routes: null,
+    loaded: false
+};
+
+// Initialize BMTC Layer (Fetch data but don't show yet)
 function addBmtcLayer() {
+    if (window.BMTC_DATA.loaded) return;
+
     // Load Stops
     fetch('data/bmtc_stops.json')
         .then(response => response.json())
         .then(data => {
-            map.addSource('bmtc-stops', {
-                type: 'geojson',
-                data: data
-            });
-
-            map.addLayer({
-                id: 'bmtc-stops-layer',
-                type: 'circle',
-                source: 'bmtc-stops',
-                layout: {
-                    'visibility': 'none'
-                },
-                paint: {
-                    'circle-radius': 4,
-                    'circle-color': '#dc2626', // Red color for BMTC
-                    'circle-stroke-width': 1,
-                    'circle-stroke-color': '#ffffff'
-                }
-            });
-
-            // Popup for stops
-            const popup = new maplibregl.Popup({
-                closeButton: false,
-                closeOnClick: false
-            });
-
-            map.on('mouseenter', 'bmtc-stops-layer', (e) => {
-                map.getCanvas().style.cursor = 'pointer';
-                const coordinates = e.features[0].geometry.coordinates.slice();
-                const description = e.features[0].properties.stop_name;
-
-                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-                    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
-                }
-
-                popup.setLngLat(coordinates).setHTML(`<strong style="color: #000000;">${description}</strong>`).addTo(map);
-            });
-
-            map.on('mouseleave', 'bmtc-stops-layer', () => {
-                map.getCanvas().style.cursor = '';
-                popup.remove();
-            });
+            window.BMTC_DATA.stops = data;
+            initializeBmtcSource();
         })
         .catch(err => console.error('Error loading BMTC stops:', err));
 
-    // Load Routes (Split into parts due to size limits)
+    // Load Routes (Split into parts)
     Promise.all([
         fetch('data/bmtc_routes_part1.json').then(res => res.json()),
         fetch('data/bmtc_routes_part2.json').then(res => res.json()),
         fetch('data/bmtc_routes_part3.json').then(res => res.json())
     ])
         .then(results => {
-            // Merge features from all parts
             const allFeatures = results.flatMap(data => data.features);
-            const mergedData = {
+
+            // Optimization: Pre-calculate BBox for all routes
+            // This makes runtime filtering almost instant (O(1) logic vs O(N) geometry)
+            console.log('[BMTC] Pre-calculating route geometries...');
+            allFeatures.forEach(f => {
+                f.bbox = turf.bbox(f);
+            });
+
+            window.BMTC_DATA.routes = {
                 type: "FeatureCollection",
                 features: allFeatures
             };
-
-            map.addSource('bmtc-routes', {
-                type: 'geojson',
-                data: mergedData,
-                lineMetrics: true
-            });
-
-            map.addLayer({
-                id: 'bmtc-routes-layer',
-                type: 'line',
-                source: 'bmtc-routes',
-                layout: {
-                    'line-join': 'round',
-                    'line-cap': 'round',
-                    'visibility': 'none'
-                },
-                paint: {
-                    'line-color': '#dc2626', // Red color for BMTC
-                    'line-width': 2,
-                    'line-opacity': 0.7
-                }
-            }, 'bmtc-stops-layer');
-
-            // Add popup for routes
-            const popup = new maplibregl.Popup({
-                closeButton: false,
-                closeOnClick: false
-            });
-
-            map.on('mouseenter', 'bmtc-routes-layer', (e) => {
-                map.getCanvas().style.cursor = 'pointer';
-
-                const properties = e.features[0].properties;
-                const description = properties.route_no || properties.route_id || 'BMTC Route';
-
-                popup.setLngLat(e.lngLat)
-                    .setHTML(`<strong style="color: #000000;">${description}</strong>`)
-                    .addTo(map);
-            });
-
-            map.on('mouseleave', 'bmtc-routes-layer', () => {
-                map.getCanvas().style.cursor = '';
-                popup.remove();
-            });
+            window.BMTC_DATA.loaded = true;
+            console.log('[BMTC] Route data loaded & optimized.');
         })
         .catch(err => console.error('Error loading BMTC routes:', err));
 }
 
-function toggleBmtcRoutes() {
-    const visibility = map.getLayoutProperty('bmtc-stops-layer', 'visibility');
-    const newVisibility = visibility === 'visible' ? 'none' : 'visible';
+function initializeBmtcSource() {
+    if (!map.getSource('bmtc-stops')) {
+        map.addSource('bmtc-stops', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] } // Start empty
+        });
 
-    if (map.getLayer('bmtc-stops-layer')) {
-        map.setLayoutProperty('bmtc-stops-layer', 'visibility', newVisibility);
+        // Stops Layer
+        map.addLayer({
+            id: 'bmtc-stops-layer',
+            type: 'circle',
+            source: 'bmtc-stops',
+            layout: { 'visibility': 'none' },
+            paint: {
+                'circle-radius': 6,
+                'circle-color': '#ef4444', // Red
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff',
+                'circle-opacity': 0.9
+            }
+        });
+
+        // 1km Radius Visual (Optional "Mathaticy" Polygon)
+        if (!map.getSource('bmtc-radius')) {
+            map.addSource('bmtc-radius', {
+                type: 'geojson',
+                data: { type: 'FeatureCollection', features: [] }
+            });
+            map.addLayer({
+                id: 'bmtc-radius-layer',
+                type: 'fill',
+                source: 'bmtc-radius',
+                layout: { 'visibility': 'none' },
+                paint: {
+                    'fill-color': '#3b82f6',
+                    'fill-opacity': 0.1,
+                    'fill-outline-color': '#3b82f6'
+                }
+            }, 'bmtc-stops-layer'); // Place below stops
+        }
+
+        // Popup logic
+        setupBmtcInteractions();
     }
-    if (map.getLayer('bmtc-routes-layer')) {
-        map.setLayoutProperty('bmtc-routes-layer', 'visibility', newVisibility);
+}
+
+// Global popup reference for BMTC to ensure only one exists
+let bmtcPopup = null;
+
+function setupBmtcInteractions() {
+    console.log('[BMTC] Setting up interactions...');
+
+    // Create popup if it doesn't exist
+    if (!bmtcPopup) {
+        bmtcPopup = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            className: 'bmtc-popup',
+            maxWidth: '320px',
+            offset: 15
+        });
+    }
+
+    const showPopup = (e) => {
+        console.log('[BMTC] Interaction detected!', e.type);
+        map.getCanvas().style.cursor = 'pointer';
+
+        if (!e.features || e.features.length === 0) {
+            console.log('[BMTC] No features found in event');
+            return;
+        }
+
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const props = e.features[0].properties;
+        const stopName = props.stop_name;
+
+        console.log('[BMTC] Stop:', stopName, coordinates);
+
+        // Ensure we handle wrapping coordinates
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+            coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+
+        // Show Initial Loading Popup (Simple version)
+        bmtcPopup.setLngLat(coordinates)
+            .setHTML(`
+                <div class="bmtc-popup-container">
+                    <div class="popup-header">
+                        <span class="stop-icon">🚏</span>
+                        <h3 class="stop-name">${stopName}</h3>
+                    </div>
+                </div>
+            `)
+            .addTo(map);
+
+        // Async calculate routes passing this stop
+        findRoutesForStopOptimized(coordinates, stopName).then(routeInfo => {
+            console.log('[BMTC] Routes found:', routeInfo);
+            if (bmtcPopup.isOpen()) {
+                updateBmtcPopupContent(stopName, routeInfo);
+            }
+        });
+    };
+
+    // Hover Handler
+    map.on('mouseenter', 'bmtc-stops-layer', showPopup);
+
+    // Click Handler (Fallback)
+    map.on('click', 'bmtc-stops-layer', showPopup);
+
+    map.on('mouseleave', 'bmtc-stops-layer', () => {
+        map.getCanvas().style.cursor = '';
+        bmtcPopup.remove();
+    });
+}
+
+// Smart Route Calculation (Heavy, so done on demand)
+async function findRoutesForStop(stopCoords, stopName) {
+    if (!window.BMTC_DATA.routes) return { busNumbers: [], destinations: [] };
+
+    // We filter routes that are geographically close to the stop (buffer ~50m)
+    // AND create a unique list of bus numbers.
+    const point = turf.point(stopCoords);
+    const passingRoutes = [];
+    const seenRoutes = new Set();
+
+    // Limit check to a reasonable subset if possible, but for now iterate all (client-side limits apply)
+    // Optimization: We could spatially index routes, but simple iteration is okay for infrequent hovers.
+
+    // Use a small buffer to find lines passing near the point
+    const bufferDist = 0.05; // 50 meters
+
+    for (const feature of window.BMTC_DATA.routes.features) {
+        // Quick bounding box check or simple distance check to first vertex? 
+        // No, pointToLineDistance is best.
+        const distance = turf.pointToLineDistance(point, feature, { units: 'kilometers' });
+
+        if (distance < bufferDist) {
+            const props = feature.properties;
+            const routeNo = props.route_short_name;
+
+            if (!seenRoutes.has(routeNo)) {
+                seenRoutes.add(routeNo);
+                passingRoutes.push({
+                    number: routeNo,
+                    desc: props.route_long_name || 'Route Info Unavailable'
+                });
+            }
+        }
+        // Cap results for UI limits
+        if (passingRoutes.length > 8) break;
+    }
+
+    return {
+        busNumbers: passingRoutes.map(r => r.number),
+        destinations: passingRoutes.map(r => r.desc) // Just showing first few distinct ones
+    };
+}
+
+function updateBmtcPopupContent(stopName, routeInfo) {
+    let contentHtml = '';
+
+    if (routeInfo.routes && routeInfo.routes.length > 0) {
+        contentHtml = `<div class="route-list-container">`;
+        routeInfo.routes.forEach(route => {
+            contentHtml += `
+                <div class="route-list-item">
+                    <span class="route-number">${route.number}</span>
+                    <span class="route-desc">${route.desc}</span>
+                </div>
+            `;
+        });
+        contentHtml += `</div>`;
+    } else {
+        contentHtml = '<div class="no-routes">No active routes detected</div>';
+    }
+
+    const html = `
+        <div class="bmtc-popup-container simple-mode">
+            <div class="popup-header-simple">
+                <span class="stop-icon">🚏</span>
+                <h3 class="stop-name">${stopName}</h3>
+                <span class="stop-count">${routeInfo.routes ? routeInfo.routes.length : 0} Routes</span>
+            </div>
+            <div class="popup-body-simple">
+                ${contentHtml}
+            </div>
+        </div>
+    `;
+    bmtcPopup.setHTML(html);
+}
+
+// Toggle & Filter Logic
+function toggleBmtcRoutes() {
+    const layerId = 'bmtc-stops-layer';
+    const radiusLayerId = 'bmtc-radius-layer';
+
+    if (!map.getLayer(layerId)) return;
+
+    const visibility = map.getLayoutProperty(layerId, 'visibility');
+    const isNowVisible = visibility === 'none';
+    const newVisibility = isNowVisible ? 'visible' : 'none';
+
+    map.setLayoutProperty(layerId, 'visibility', newVisibility);
+    if (map.getLayer(radiusLayerId)) {
+        map.setLayoutProperty(radiusLayerId, 'visibility', newVisibility);
     }
 
     const btn = document.getElementById('bmtc-btn');
-    const label = btn.querySelector('.btn-label');
-    if (newVisibility === 'visible') {
-        btn.classList.add('active');
-        if (label) label.textContent = 'Hide BMTC';
+    const navBtn = document.getElementById('navbar-bmtc-btn');
+
+    if (isNowVisible) {
+        updateButtonState(btn, navBtn, true);
+
+        // TRIGGER SMART FILTERING
+        // Get user location from the marker if it exists, else map center
+        let center = map.getCenter();
+        if (userLocationMarker) {
+            const lngLat = userLocationMarker.getLngLat();
+            center = [lngLat.lng, lngLat.lat];
+        } else {
+            console.log("User location not found, using map center for filtering");
+        }
+
+        filterStopsByRadius(center);
+
     } else {
-        btn.classList.remove('active');
-        if (label) label.textContent = 'BMTC Routes';
+        updateButtonState(btn, navBtn, false);
+        // Clear filtered data to save memory? No, just hide.
     }
 }
+
+function updateButtonState(btn, navBtn, active) {
+    if (btn) {
+        const label = btn.querySelector('.btn-label');
+        if (active) {
+            btn.classList.add('active');
+            if (label) label.textContent = 'Hide BMTC';
+        } else {
+            btn.classList.remove('active');
+            if (label) label.textContent = 'BMTC Routes';
+        }
+    }
+    if (navBtn) {
+        active ? navBtn.classList.add('active') : navBtn.classList.remove('active');
+    }
+    // Sync mobile bottom nav button
+    const mobileBtn = document.getElementById('mobile-bmtc-btn');
+    if (mobileBtn) {
+        active ? mobileBtn.classList.add('active') : mobileBtn.classList.remove('active');
+    }
+}
+
+function filterStopsByRadius(centerCoords) {
+    if (!window.BMTC_DATA.stops) return;
+
+    const centerPoint = turf.point([centerCoords[0], centerCoords[1]]);
+    const radius = 1; // 1km
+    const options = { steps: 64, units: 'kilometers' };
+
+    // 1. Generate Circle Polygon for visualization
+    const circleParams = turf.circle([centerCoords[0], centerCoords[1]], radius, options);
+    const bbox = turf.bbox(circleParams); // [minX, minY, maxX, maxY]
+    const bboxPoly = turf.bboxPolygon(bbox);
+
+    // 2. Filter Stops inside this circle
+    const filteredStops = window.BMTC_DATA.stops.features.filter(feature => {
+        const stopPoint = turf.point(feature.geometry.coordinates);
+        const distance = turf.distance(centerPoint, stopPoint, { units: 'kilometers' });
+        return distance <= radius;
+    });
+
+    // 3. Spatially Filter Routes (Pre-calculation step)
+    // We only keep routes that intersect the 1km BBox.
+    if (window.BMTC_DATA.routes) {
+        // [minX, minY, maxX, maxY]
+        const b = bbox;
+
+        window.BMTC_DATA.nearbyRoutes = window.BMTC_DATA.routes.features.filter(feature => {
+            const rb = feature.bbox || turf.bbox(feature); // Use pre-calc or fallback
+            // Simple AABB Overlap Check (Fastest possible collision detection)
+            // route.minX <= search.maxX && route.maxX >= search.minX ...
+            return (rb[0] <= b[2] && rb[2] >= b[0]) && (rb[1] <= b[3] && rb[3] >= b[1]);
+        });
+        console.log(`[BMTC] Pre-filtered routes: ${window.BMTC_DATA.nearbyRoutes.length} found near user.`);
+    }
+
+    console.log(`Filtered ${filteredStops.length} stops within 1km.`);
+
+    // 4. Update Map Source
+    const source = map.getSource('bmtc-stops');
+    if (source) {
+        source.setData({
+            type: "FeatureCollection",
+            features: filteredStops
+        });
+    }
+
+    // 5. Update Radius Visual
+    const radiusSource = map.getSource('bmtc-radius');
+    if (radiusSource) {
+        radiusSource.setData(circleParams);
+    }
+}
+
 
 // ========================================
 // Facility Data Visualization (Hospitals & Police)
@@ -1206,22 +1492,51 @@ function addFacilityLayer() {
 
 function toggleFacilities() {
     const btn = document.getElementById('facilities-btn');
-    const isVisible = btn.getAttribute('data-visible') === 'true';
+    const navBtn = document.getElementById('navbar-facilities-btn');
+
+    // Determine current visibility from either button or marker state
+    let isVisible = false;
+    if (btn) {
+        isVisible = btn.getAttribute('data-visible') === 'true';
+    } else if (navBtn) {
+        isVisible = navBtn.getAttribute('data-visible') === 'true';
+    } else {
+        const mobBtn = document.getElementById('mobile-facilities-btn');
+        if (mobBtn) isVisible = mobBtn.getAttribute('data-visible') === 'true';
+    }
+
     const newVisibility = !isVisible;
 
     facilityMarkers.forEach(item => {
         item.element.style.display = newVisibility ? 'flex' : 'none';
     });
 
-    btn.setAttribute('data-visible', newVisibility);
-    const label = btn.querySelector('.btn-label');
+    if (btn) {
+        btn.setAttribute('data-visible', newVisibility);
+        const label = btn.querySelector('.btn-label');
+        if (newVisibility) {
+            btn.classList.add('active');
+            if (label) label.textContent = 'Hide Facilities';
+        } else {
+            btn.classList.remove('active');
+            if (label) label.textContent = 'Hospitals & Police Stations';
+        }
+    }
 
-    if (newVisibility) {
-        btn.classList.add('active');
-        if (label) label.textContent = 'Hide Facilities';
-    } else {
-        btn.classList.remove('active');
-        if (label) label.textContent = 'Hospitals & Police Stations';
+    if (navBtn) {
+        navBtn.setAttribute('data-visible', newVisibility);
+        if (newVisibility) {
+            navBtn.classList.add('active');
+        } else {
+            navBtn.classList.remove('active');
+        }
+    }
+
+    // Sync mobile bottom nav button
+    const mobileBtn = document.getElementById('mobile-facilities-btn');
+    if (mobileBtn) {
+        mobileBtn.setAttribute('data-visible', newVisibility);
+        newVisibility ? mobileBtn.classList.add('active') : mobileBtn.classList.remove('active');
     }
 }
 
@@ -1275,19 +1590,48 @@ function addAccidentLayer() {
 
 function toggleAccidents() {
     const btn = document.getElementById('accidents-btn');
-    const isVisible = btn.getAttribute('data-visible') === 'true';
+    const navBtn = document.getElementById('navbar-accidents-btn');
+
+    // Determine visibility
+    let isVisible = false;
+    if (btn) {
+        isVisible = btn.getAttribute('data-visible') === 'true';
+    } else if (navBtn) {
+        isVisible = navBtn.getAttribute('data-visible') === 'true';
+    } else {
+        const mobBtn = document.getElementById('mobile-accidents-btn');
+        if (mobBtn) isVisible = mobBtn.getAttribute('data-visible') === 'true';
+    }
+
     const newVisibility = !isVisible;
 
-    // Update button state immediately for responsiveness
-    btn.setAttribute('data-visible', newVisibility);
-    const label = btn.querySelector('.btn-label');
+    // Update buttons
+    if (btn) {
+        btn.setAttribute('data-visible', newVisibility);
+        const label = btn.querySelector('.btn-label');
+        if (newVisibility) {
+            btn.classList.add('active');
+            if (label) label.textContent = 'Hide Accidents';
+        } else {
+            btn.classList.remove('active');
+            if (label) label.textContent = 'Accident Zones';
+        }
+    }
 
-    if (newVisibility) {
-        btn.classList.add('active');
-        if (label) label.textContent = 'Hide Accidents';
-    } else {
-        btn.classList.remove('active');
-        if (label) label.textContent = 'Accident Zones';
+    if (navBtn) {
+        navBtn.setAttribute('data-visible', newVisibility);
+        if (newVisibility) {
+            navBtn.classList.add('active');
+        } else {
+            navBtn.classList.remove('active');
+        }
+    }
+
+    // Sync mobile bottom nav button
+    const mobileAccBtn = document.getElementById('mobile-accidents-btn');
+    if (mobileAccBtn) {
+        mobileAccBtn.setAttribute('data-visible', newVisibility);
+        newVisibility ? mobileAccBtn.classList.add('active') : mobileAccBtn.classList.remove('active');
     }
 
     // Defer heavy marker updates to next frame to avoid blocking INP
@@ -1578,6 +1922,15 @@ function renderRoutesList(routes) {
     });
 
     routesContainer.classList.add('visible');
+
+    // Show the sidebar on mobile when routes are found
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (isMobile) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.add('mobile-visible');
+        }
+    }
 }
 
 // ========================================
@@ -1771,20 +2124,49 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') findSafeRoutes();
     });
 
-    document.getElementById('metro-btn').addEventListener('click', toggleMetroStops);
-    document.getElementById('bmtc-btn').addEventListener('click', toggleBmtcRoutes);
+
 
     setupAutocomplete('start-location');
     setupAutocomplete('end-location');
 
-    // SOS Button Handler
-    const sosBtn = document.getElementById('sos-btn');
+    // SOS Button Handler (Premium Modal)
+    function showEmergencyModal() {
+        const modal = document.getElementById('emergency-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex'; // Ensure flex layout
 
-    if (sosBtn) {
-        sosBtn.addEventListener('click', () => {
-            alert('Emergency message sent to server! Help is on the way.');
+            // Auto close after 5 seconds
+            /* setTimeout(() => {
+                modal.classList.add('hidden');
+                setTimeout(() => modal.style.display = 'none', 300);
+            }, 5000); */
+        }
+    }
+
+    // Close button handler
+    const closeEmergencyBtn = document.getElementById('close-emergency-btn');
+    if (closeEmergencyBtn) {
+        closeEmergencyBtn.addEventListener('click', () => {
+            const modal = document.getElementById('emergency-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                setTimeout(() => modal.style.display = 'none', 300);
+            }
         });
     }
+
+    const sosBtn = document.getElementById('sos-btn'); // Mobile regular button
+    if (sosBtn) {
+        sosBtn.addEventListener('click', showEmergencyModal);
+    }
+
+    const desktopSosBtn = document.getElementById('desktop-sos-btn'); // Desktop Navbar button
+    if (desktopSosBtn) {
+        desktopSosBtn.addEventListener('click', showEmergencyModal);
+    }
+
+
 
     // Premium button hover spotlight effect
     const findBtn = document.getElementById('find-routes-btn');
@@ -2145,4 +2527,82 @@ function initMobileSearchPanel() {
             if (findBtn) findBtn.click();
         });
     }
+}
+
+// Smart Route Calculation (Optimized using pre-filtered data)
+// Now O(1) effectively instead of O(N)
+async function findRoutesForStopOptimized(stopCoords, stopName) {
+    // 1. Initialize Cache if not exists
+    if (!window.BMTC_DATA.routeCache) {
+        window.BMTC_DATA.routeCache = new Map();
+    }
+
+    // 2. Check Cache
+    const cacheKey = `${stopName}-${stopCoords[0].toFixed(5)}-${stopCoords[1].toFixed(5)}`;
+    if (window.BMTC_DATA.routeCache.has(cacheKey)) {
+        return window.BMTC_DATA.routeCache.get(cacheKey);
+    }
+
+    // 3. Non-Blocking Yield (Let UI update/unfreeze)
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // defaults to empty if not loaded
+    const candidateRoutes = window.BMTC_DATA.nearbyRoutes || [];
+
+    if (candidateRoutes.length === 0) return { routes: [] };
+
+    const point = turf.point(stopCoords);
+    const passingRoutes = [];
+    const seenRoutes = new Set();
+
+    // Use a small buffer to find lines passing near the point
+    const bufferDist = 0.05; // 50 meters
+
+    // Quick BBox approximation for the stop (0.05km is roughly 0.0005 degrees)
+    const delta = 0.0005;
+    const stopBBox = [
+        stopCoords[0] - delta,
+        stopCoords[1] - delta,
+        stopCoords[0] + delta,
+        stopCoords[1] + delta
+    ];
+
+    // Iterate ONLY the nearby routes
+    for (const feature of candidateRoutes) {
+        // TIER 2 OPTIMIZATION: BBox Check
+        const rBBox = feature.bbox || turf.bbox(feature);
+        if (rBBox[0] > stopBBox[2] || rBBox[2] < stopBBox[0] ||
+            rBBox[1] > stopBBox[3] || rBBox[3] < stopBBox[1]) {
+            continue;
+        }
+
+        const distance = turf.pointToLineDistance(point, feature, { units: 'kilometers' });
+
+        if (distance < bufferDist) {
+            const props = feature.properties;
+            const routeNo = props.route_short_name;
+            const routeDesc = props.route_long_name || 'Route Info Unavailable';
+
+            // Ensure UNIQUE bus numbers only
+            if (!seenRoutes.has(routeNo)) {
+                seenRoutes.add(routeNo);
+                passingRoutes.push({
+                    number: routeNo,
+                    desc: routeDesc
+                });
+            }
+        }
+    }
+
+    // Sort by bus number
+    passingRoutes.sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+
+    const result = {
+        routes: passingRoutes
+    };
+
+    // 4. Save to Cache
+    window.BMTC_DATA.routeCache.set(cacheKey, result);
+
+    return result;
 }

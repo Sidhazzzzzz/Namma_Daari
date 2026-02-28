@@ -8,7 +8,33 @@
     <link rel="icon" type="image/png" href="/assets/favicon.png?v=5">
     <link rel="apple-touch-icon" href="/assets/favicon.png?v=5">
     <meta name="description"
-        content="Discover the safest routes in Bengaluru with real-time crime data analysis and intelligent route planning.">
+        content="Namma Daari is a smart route planning platform for Bengaluru that analyzes real-time crime data, accident hotspots, and proximity to emergency services to help citizens find the safest travel routes across the city.">
+
+    <!-- Open Graph / LinkedIn / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://namma-daari.vercel.app/">
+    <meta property="og:title" content="Namma Daari — Smart Safe Route Planner for Bengaluru">
+    <meta property="og:description"
+        content="Namma Daari is a smart route planning platform for Bengaluru that analyzes real-time crime data, accident hotspots, and proximity to emergency services to help citizens find the safest travel routes across the city.">
+    <meta property="og:image" content="https://namma-daari.vercel.app/logo.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Namma Daari">
+    <meta property="og:locale" content="en_IN">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Namma Daari — Smart Safe Route Planner for Bengaluru">
+    <meta name="twitter:description"
+        content="Namma Daari is a smart route planning platform for Bengaluru that analyzes real-time crime data, accident hotspots, and proximity to emergency services to help citizens find the safest travel routes across the city.">
+    <meta name="twitter:image" content="https://namma-daari.vercel.app/logo.jpg">
+
+    <!-- Additional SEO -->
+    <meta name="author" content="Namma Daari Team">
+    <meta name="keywords"
+        content="Bengaluru, safe routes, route planner, crime data, safety, navigation, BMTC, metro, Karnataka">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://namma-daari.vercel.app/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -23,10 +49,86 @@
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
 
     <link rel="stylesheet" href="/src/style.css">
+    <link rel="stylesheet" href="/src/bmtc.css">
     <link rel="stylesheet" href="src/sos-override.css">
 </head>
 
 <body>
+    <!-- Top Navigation Bar -->
+    <header class="top-navbar">
+        <div class="navbar-brand">
+            <img src="assets/favicon.png" alt="Namma Daari Logo" class="navbar-logo" />
+            <span class="brand-name"><span class="brand-namma">Namma</span> <span
+                    class="brand-daari">Daari</span></span>
+        </div>
+
+        <!-- Feature Buttons in Navbar -->
+        <div class="navbar-actions">
+            <button id="navbar-metro-btn" class="navbar-icon-btn" title="Metro Stations">
+                <span class="nav-icon-wrapper metro-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="3" width="16" height="16" rx="3" ry="3"></rect>
+                        <path d="M4 11h16"></path>
+                        <path d="M12 3v8"></path>
+                        <circle cx="8" cy="16" r="1"></circle>
+                        <circle cx="16" cy="16" r="1"></circle>
+                        <path d="M8 19l-2 3"></path>
+                        <path d="M16 19l2 3"></path>
+                    </svg>
+                </span>
+            </button>
+            <button id="navbar-bmtc-btn" class="navbar-icon-btn" title="BMTC Routes">
+                <span class="nav-icon-wrapper bmtc-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 6v6"></path>
+                        <path d="M16 6v6"></path>
+                        <path d="M2 12h20"></path>
+                        <path d="M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"></path>
+                        <circle cx="6" cy="18" r="2"></circle>
+                        <circle cx="18" cy="18" r="2"></circle>
+                    </svg>
+                </span>
+            </button>
+            <button id="navbar-accidents-btn" class="navbar-icon-btn" title="Accident Zones">
+                <span class="nav-icon-wrapper accidents-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                        </path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </span>
+            </button>
+            <button id="navbar-facilities-btn" class="navbar-icon-btn" title="Hospitals & Police">
+                <span class="nav-icon-wrapper facilities-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <path d="M12 8v6"></path>
+                        <path d="M9 11h6"></path>
+                    </svg>
+                </span>
+            </button>
+        </div>
+
+        <!-- SOS Button -->
+        <button id="desktop-sos-btn" class="navbar-sos-btn" title="Emergency SOS">
+            <span class="sos-icon-wrapper">⚡</span>
+            <span class="sos-text">SOS</span>
+        </button>
+
+        <div class="navbar-profile">
+            <div class="profile-avatar">
+                <img src="https://ui-avatars.com/api/?name=U&background=2196F3&color=fff&size=128&bold=true"
+                    alt="Profile" class="profile-img" />
+            </div>
+        </div>
+    </header>
+
     <div id="app">
         <!-- Mobile Top Search Bar (hidden on desktop) -->
         <div class="mobile-top-bar">
@@ -139,66 +241,6 @@
                         </svg>
                         Find Safe Routes
                     </button>
-
-                    <button id="metro-btn" class="secondary-btn feature-btn">
-                        <span class="btn-icon-wrapper metro-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="4" y="3" width="16" height="16" rx="3" ry="3"></rect>
-                                <path d="M4 11h16"></path>
-                                <path d="M12 3v8"></path>
-                                <circle cx="8" cy="16" r="1"></circle>
-                                <circle cx="16" cy="16" r="1"></circle>
-                                <path d="M8 19l-2 3"></path>
-                                <path d="M16 19l2 3"></path>
-                            </svg>
-                        </span>
-                        <span class="btn-label">Metro Stations</span>
-                    </button>
-
-                    <button id="bmtc-btn" class="secondary-btn feature-btn">
-                        <span class="btn-icon-wrapper bmtc-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M8 6v6"></path>
-                                <path d="M16 6v6"></path>
-                                <path d="M2 12h20"></path>
-                                <path d="M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z">
-                                </path>
-                                <circle cx="6" cy="18" r="2"></circle>
-                                <circle cx="18" cy="18" r="2"></circle>
-                            </svg>
-                        </span>
-                        <span class="btn-label">BMTC Routes</span>
-                    </button>
-
-                    <button id="accidents-btn" class="secondary-btn feature-btn">
-                        <span class="btn-icon-wrapper accidents-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path
-                                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
-                                </path>
-                                <line x1="12" y1="9" x2="12" y2="13"></line>
-                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                            </svg>
-                        </span>
-                        <span class="btn-label">Accident Zones</span>
-                    </button>
-
-                    <button id="facilities-btn" class="secondary-btn feature-btn">
-                        <span class="btn-icon-wrapper facilities-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <!-- Shield shape representing protection/police -->
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                                <!-- Medical cross inside shield representing hospitals -->
-                                <path d="M12 8v6"></path>
-                                <path d="M9 11h6"></path>
-                            </svg>
-                        </span>
-                        <span class="btn-label">Hospitals & Police Stations</span>
-                    </button>
                 </div>
 
                 <div id="weather-container" class="weather-container hidden">
@@ -231,13 +273,66 @@
             </div>
         </aside>
 
+        <!-- Mobile Bottom Navigation Bar (hidden on desktop) -->
+        <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+            <button id="mobile-metro-btn" class="mobile-nav-btn" title="Metro">
+                <span class="mobile-nav-icon metro-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="3" width="16" height="16" rx="3" ry="3"></rect>
+                        <path d="M4 11h16"></path>
+                        <path d="M12 3v8"></path>
+                        <circle cx="8" cy="16" r="1"></circle>
+                        <circle cx="16" cy="16" r="1"></circle>
+                        <path d="M8 19l-2 3"></path>
+                        <path d="M16 19l2 3"></path>
+                    </svg>
+                </span>
+                <span class="mobile-nav-label">Metro</span>
+            </button>
+            <button id="mobile-bmtc-btn" class="mobile-nav-btn" title="BMTC">
+                <span class="mobile-nav-icon bmtc-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 6v6"></path>
+                        <path d="M16 6v6"></path>
+                        <path d="M2 12h20"></path>
+                        <path d="M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"></path>
+                        <circle cx="6" cy="18" r="2"></circle>
+                        <circle cx="18" cy="18" r="2"></circle>
+                    </svg>
+                </span>
+                <span class="mobile-nav-label">BMTC</span>
+            </button>
+            <button id="mobile-accidents-btn" class="mobile-nav-btn" title="Accidents">
+                <span class="mobile-nav-icon accidents-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                        </path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </span>
+                <span class="mobile-nav-label">Accidents</span>
+            </button>
+            <button id="mobile-facilities-btn" class="mobile-nav-btn" title="Facilities">
+                <span class="mobile-nav-icon facilities-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <path d="M12 8v6"></path>
+                        <path d="M9 11h6"></path>
+                    </svg>
+                </span>
+                <span class="mobile-nav-label">Facilities</span>
+            </button>
+        </nav>
+
         <!-- Map Container -->
         <main class="map-container">
-            <!-- SOS Button (Top Right) -->
-            <button id="sos-btn" class="sos-btn">
-                <span class="sos-icon">⚡</span>
-                <span class="sos-text">SOS</span>
-            </button>
+
 
             <div id="map"></div>
             <div id="loading-overlay" class="loading-overlay hidden">
@@ -245,6 +340,25 @@
                 <p class="loading-text">Calculating safe routes...</p>
             </div>
         </main>
+    </div>
+
+    <!-- Premium Emergency Modal -->
+    <div id="emergency-modal" class="emergency-modal-overlay hidden">
+        <div class="emergency-modal-content">
+            <div class="emergency-pulse-ring"></div>
+            <div class="emergency-icon-container">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+            </div>
+            <h2 class="emergency-title">EMERGENCY ALERT SENT</h2>
+            <p class="emergency-message">Help is on the way!</p>
+            <p class="emergency-subtext">Your live location has been shared with authorities and emergency contacts.</p>
+            <button id="close-emergency-btn" class="emergency-close-btn">DISMISS</button>
+        </div>
     </div>
 
     <!-- script src="data/metroData.js"></script -->
