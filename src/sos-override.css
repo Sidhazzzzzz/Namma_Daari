@@ -81,3 +81,10 @@
         display: none;
     }
 }
+
+/* Focus state for keyboard accessibility */
+.navbar-sos-btn:focus-visible {
+    outline: 2px solid #fbbf24;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.2);
+}

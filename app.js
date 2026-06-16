@@ -199,7 +199,7 @@ function showSuggestions(suggestions, inputElement) {
     list.innerHTML = '';
 
     if (suggestions.length === 0) {
-        list.innerHTML = '<div class="autocomplete-item">No results found</div>';
+        list.innerHTML = '<div class="autocomplete-item"><strong>No locations found</strong><small>Try a different spelling or add \"Bengaluru\" to your search</small></div>';
         return;
     }
 
@@ -1884,9 +1884,9 @@ function renderRoutesList(routes) {
         <span class="safety-badge ${safetyLevel}">${safetyText}</span>
       </div>
       <div class="route-details">
-        <div class="route-stat">
+        <div class="route-stat route-stat-safety">
           <span class="stat-label">Safety Score</span>
-          <span class="safety-score ${safetyLevel}">${route.safetyScore}/100</span>
+          <span class="safety-score ${safetyLevel}">${route.safetyScore}<small>/100</small></span>
         </div>
         <div class="route-stat">
           <span class="stat-label">Distance</span>
@@ -1943,7 +1943,7 @@ async function findSafeRoutes() {
     const findButton = document.getElementById('find-routes-btn');
 
     if (!startInput || !endInput) {
-        alert('Please enter both starting point and destination');
+        alert('Please enter both a starting point and destination to find safe routes.');
         return;
     }
 
@@ -2101,7 +2101,7 @@ async function findSafeRoutes() {
 
     } catch (error) {
         console.error('Error finding routes:', error);
-        alert(`Error: ${error.message}`);
+        alert(`Couldn't find routes: ${error.message}. Try a specific Bengaluru location like "Indiranagar" or "Koramangala".`);
     } finally {
         loadingOverlay.classList.add('hidden');
         findButton.disabled = false;
