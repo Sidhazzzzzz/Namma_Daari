@@ -5,6 +5,8 @@
 Namma Daari ("Our Way" in Kannada) isn't just another map app. It's a specialized safety tool built specificially for Bengaluru, designed to help you navigate not just the fastest routes, but the *safest* ones.
 
 Whether you're walking home late at night in Indiranagar or commuting through Silk Board, this app analyzes real-time data to keep you informed.
+
+
 <img width="926" height="416" alt="image" src="https://github.com/user-attachments/assets/8cbedffc-ba8c-4001-ad64-9d5de428b11e" />
 
 ---
